@@ -59,8 +59,10 @@ class ducttape(protocol.ProcessProtocol):
     host = None
     port = None
 
-    def __init__(self, socks_obj):
+    def __init__(self, socks_obj, host, port):
         self.socks_obj = socks_obj
+        self.host = host
+        self.port = port
 
     def connectionMade(self):
         # Send the SOCKS reply, and set us up as the otherConn so that data
@@ -100,7 +102,7 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     # I *should* validate that I have a known_hosts entry for host and that the
     # key_file is valid.  Can't be bothered for now, and ssh will error out if
     # either of those conditons are not true.
-    process_protocol = ducttape(socks_obj)
+    process_protocol = ducttape(socks_obj, host, port)
 
     args = list(_SSH_ARGS)
     #args.append("-vvv")
@@ -116,8 +118,6 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     args.append("-p " + str(port))
     args.append(user + "@" + host)
 
-    process_protocol.host = host
-    process_protocol.port = port
     reactor.spawnProcess(process_protocol, "/usr/bin/ssh", args)
                                                             # XXX: Windows
 
