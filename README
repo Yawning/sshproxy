@@ -1,0 +1,34 @@
+sshproxy: (Yet Another) SSH Wire Protocol Pluggable Transport
+Yawning Angel <yawning at schwanenlied dot me>
+
+This is a Twisted/pyptlib based rewrite of obfsproxyssh.  It also has the
+unique "feature" of using a platform native OpenSSH binary instead of a SSH
+wire protocol library, so it's essentially a gigantic roll of duct tape tying
+Tor and OpenSSH together.
+
+Why write this:
+ * libssh2's code was questionable from a security standpoint.
+ * Twisted Conch/Paramiko both are lacking features neccecary for sshproxy to
+   not stand out as a unique SSH client.  The one benefit to using the
+   OpenSSH is added fingerprinting resistance.
+
+Drawbacks to this approach:
+ * This writes a bunch of data to disk (known_hosts and the id_rsa files) and
+   there's no way to avoid writing a bunch of data to disk.
+ * The author feels that forking OpenSSH and talking to the remote host over a
+   named pipe is really lame.
+ * OpenSSH by default does not support SOCKS which will make stacking this on
+   other things harder.
+ * It depends on the user's system ssh to be sane.
+ * I'm a C programmer, not a python one.
+
+PT Arguments:
+ * "user=<USERNAME>" - The user on the bridge to authenticate as.
+ * "orport=<ORPORT>" - The OR port on the bridge's loopback interface.
+ * "privkey=<PRIVKEY>" - The RSA private key to use when authenticating.  The
+   code expects a PEM format RSA key, with the header/footer/newlines removed.
+ * "ssh-rsa=<RSA HOST KEY>" - The RSA host key of the bridge (Base64 encoded).
+ * "ssh-dss=<DSA HOST KEY>" - The DSA host key of the brdige (Base64 encoded).
+ * "ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
+ * "ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
+ * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
