@@ -22,6 +22,9 @@ class state:
     cached_credentials = {}
     use_ecdsa = True
 
+    default_args = None
+    cached_args = {}
+
     key_types = [
         "ssh-rsa",
         "ssh-dss"
@@ -52,6 +55,16 @@ class state:
         orport = None
         key_pem = None
         have_hostkey = False
+
+        # Under certain circumstances it's possible that we don't get arguments
+        # from Tor.
+        if args is None:
+            if self.default_args is not None:
+                # We're not in managed mode, so pass the synthetic args constructed
+                # from the command line arguments.
+                args = self.default_args
+            else:
+                return self.guess_args(server)
 
         for arg in args:
             if arg.startswith("user="):
@@ -97,10 +110,39 @@ class state:
         try:
             self.write_known_hosts()
             self.add_auth_credentials(server, user, key_pem)
-        except IoError:
+        except IOError:
             return None
 
+        # Cache the user/orport so that we can work around #9162
+        self.cached_args[server] = {}
+        self.cached_args[server]["user"] = user
+        self.cached_args[server]["orport"] = orport
+
         return (user, orport)
+
+    def guess_args(self, server):
+        # If we end up here, either the user screwed up the bridge line, or
+        # the user's Tor is affected by #9162
+
+        log.msg("SOCKS: No arguments received (Tor bug #9162)")
+
+        if not server in self.known_hosts:
+            log.msg("SOCKS: (#9162) Unable to build a known_hosts entry")
+            return None
+
+        if not server in self.cached_args:
+            log.msg("SOCKS: (#9162) Unable to guess user/OR port")
+            return None
+
+        user = self.cached_args[server]["user"]
+        key = user + "@" + server
+        if not key in self.cached_credentials:
+            log.msg("SOCKS: (#9162) No cached RSA key")
+            return None
+
+        log.msg("SOCKS: (#9162) Using previously seen values for this host")
+
+        return (user, self.cached_args[server]["orport"])
 
     def add_known_host(self, host, key_type, key):
         if not key_type in self.key_types:
@@ -149,14 +191,23 @@ class state:
             finally:
                 f.close()
         except IOError as err:
-            log.log("SSH: Failed to write know_hosts file: ", err.errno)
+            log.msg("SSH: Failed to write know_hosts file: ", err.errno)
             raise
 
     def add_auth_credentials(self, host, user, key_pem):
         key = user + "@" + host
+        real_pem = arg_to_pem(key_pem)
+
         if key in self.cached_credentials:
-            os.unlink(self.cached_credentials[key])
-        self.cached_credentials[key] = self.write_credentials(key_pem)
+            if self.cached_credentials[key]["body"] != real_pem:
+                log.msg("SSH: Authentication credentials changed")
+                os.unlink(self.cached_credentials[key])
+            else:
+                # Cache hit!
+                return
+        self.cached_credentials[key] = {}
+        self.cached_credentials[key]["body"] = real_pem
+        self.cached_credentials[key]["file"] = self.write_credentials(real_pem)
 
     def write_credentials(self, key_pem):
         try:
@@ -164,17 +215,19 @@ class state:
                                 text=True)
             fh = os.fdopen(f, "w")
             try:
-                fh.write(arg_to_pem(key_pem))
+                fh.write(key_pem)
             finally:
                 fh.close()
         except IOError:
-            log.log("SSH: Failed to write id file: ", err.errno)
+            log.msg("SSH: Failed to write id file: ", err.errno)
             raise
         return os.path.abspath(os.path.join(self.temp_path, f_name))
 
     def get_auth_credentials(self, user, host):
         key = user + "@" + host
-        return self.cached_credentials.get(key)
+        if key in self.cached_credentials:
+            return self.cached_credentials[key]["file"]
+        return None
 
 
 def arg_to_pem(key):

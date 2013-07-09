@@ -32,17 +32,16 @@ class SOCKSv4Protocol(socks.SOCKSv4):
             log.msg("SOCKS: Unsupported command code: " + str(code))
             return False
 
-        # Arguments are mandatory
-        if user is None:
-            log.msg("SOCKS: No arguments provided at all")
-            return False
-
-        try:
-            socks_args = csv.reader([user], delimiter=';',
-                                    escapechar='\\').next()
-        except cvsError, err:
-            log.msg("SOCKS: Failed to parse arguments")
-            return False
+        # Arguments are mandatory, but it's possible that we're not running
+        # in managed mode (or we hit #9162/#9163), so attempt to continue.
+        socks_args = None
+        if user is not None:
+            try:
+                socks_args = csv.reader([user], delimiter=';',
+                                        escapechar='\\').next()
+            except cvsError, err:
+                log.msg("SOCKS: Failed to parse arguments")
+                return False
 
         user_orport = self.state_mgr.parse_args(server, socks_args)
         if user_orport is None:
