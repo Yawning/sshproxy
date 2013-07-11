@@ -14,6 +14,9 @@ In theory, this is where all the portability cruft will live, apart from the
 py2exe stuff.
 """
 
+import os
+import sys
+
 from twisted.internet import protocol, reactor
 
 from twisted.python import log
@@ -36,22 +39,30 @@ _SSH_ARGS = [
     # don't set them explicitly.
 ]
 
+
+_SSH_EXECUTABLE = None
+_NULL_FILE = None
+
 # As far as I know, no one uses this cert shit, but if the remote sshd is
 # configured to use them then negotiation will fail because we don't support
 # verifying those at the moment.
-_SSH_ARGS_HKEY_NO_ECDSA = ("-o HostKeyAlgorithms "
-            "ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,"
-            "ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,"
-            "ssh-rsa,ssh-dss")
+_SSH_ARGS_HKEY_NO_ECDSA = (
+    "-o HostKeyAlgorithms "
+    "ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,"
+    "ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,"
+    "ssh-rsa,ssh-dss"
+)
 
-_SSH_ARGS_HKEY_ECDSA = ("-o HostKeyAlgorithms "
-            "ecdsa-sha2-nistp256-cert-v01@openssh.com,"
-            "ecdsa-sha2-nistp384-cert-v01@openssh.com,"
-            "ecdsa-sha2-nistp521-cert-v01@openssh.com,"
-            "ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,"
-            "ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,"
-            "ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,"
-            "ssh-rsa,ssh-dss")
+_SSH_ARGS_HKEY_ECDSA = (
+    "-o HostKeyAlgorithms "
+    "ecdsa-sha2-nistp256-cert-v01@openssh.com,"
+    "ecdsa-sha2-nistp384-cert-v01@openssh.com,"
+    "ecdsa-sha2-nistp521-cert-v01@openssh.com,"
+    "ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,"
+    "ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,"
+    "ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,"
+    "ssh-rsa,ssh-dss"
+)
 
 
 class ducttape(protocol.ProcessProtocol):
@@ -108,7 +119,7 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     #args.append("-vvv")
     args.append("-o UserKnownHostsFile " +
                 socks_obj.state_mgr.known_hosts_path)
-    args.append("-o GlobalKnownHostsFile /dev/null")  # XXX: Windows (NUL)
+    args.append("-o GlobalKnownHostsFile " + _NULL_FILE)
     if socks_obj.state_mgr.use_ecdsa is True:
         args.append(_SSH_ARGS_HKEY_ECDSA)
     else:
@@ -118,9 +129,29 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     args.append("-p " + str(port))
     args.append(user + "@" + host)
 
-    reactor.spawnProcess(process_protocol, "/usr/bin/ssh", args)
-                                                            # XXX: Windows
+    reactor.spawnProcess(process_protocol, _SSH_EXECUTABLE, args)
 
     return process_protocol
+
+
+def init_ducttape():
+    # Do a bit of runtime setup to figure out the paths of the various
+    # files needed to make the ssh executable work.
+
+    global _SSH_EXECUTABLE
+    global _NULL_FILE
+    frozen = getattr(sys, "frozen", "")
+
+    if frozen == "console_exe":
+        # We've been packaged with py2exe:
+        _SSH_EXECUTABLE = os.path.abspath(os.path.join(os.path.dirname(
+            sys.executable), "ssh.exe"))
+        _NULL_FILE = "NUL"
+    else:
+        _SSH_EXECUTABLE = "/usr/bin/ssh"
+        _NULL_FILE = "/dev/null"
+
+
+init_ducttape()
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
