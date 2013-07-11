@@ -6,6 +6,7 @@ authenticate (hostkey(s), username, public key).
 """
 
 import os
+import csv
 import base64
 import hmac
 from hashlib import sha1
@@ -50,6 +51,15 @@ class state:
                     "ecdsa-sha2-nistp521")
         return None
 
+    def split_args(self, args):
+        s = None
+        try:
+            s = csv.reader([args], delimiter=';', escapechar='\\').next()
+        except:
+            log.msg("SOCKS: Failed to parse arguments")
+            return None
+        return s
+
     def parse_args(self, server, args):
         user = None
         orport = None
@@ -60,9 +70,7 @@ class state:
         # from Tor.
         if args is None:
             if self.default_args is not None:
-                # We're not in managed mode, so pass the synthetic args constructed
-                # from the command line arguments.
-                args = self.default_args
+                args = self.split_args(self.default_args)
             else:
                 return self.guess_args(server)
 

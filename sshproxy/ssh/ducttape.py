@@ -91,7 +91,7 @@ class ducttape(protocol.ProcessProtocol):
     def errReceived(self, data):
         # Welp, something went terribly wrong, and ssh is bitching over stderr
         log.msg("SSH Error(?): " + data)
-        self.transport.signalProcess('KILL')
+        self.transport.signalProcess("KILL")
 
     def inConnectionLost(self):
         pass

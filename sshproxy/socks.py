@@ -4,12 +4,9 @@
 Do the nececary integration between Twisted's SOCKSv4 code and ducttape.
 """
 
-import csv
-
 from twisted.protocols import socks
 from twisted.internet import defer
 from twisted.internet.protocol import Factory
-
 from twisted.python import log
 
 from sshproxy.ssh.ducttape import new_ducttape
@@ -29,19 +26,14 @@ class SOCKSv4Protocol(socks.SOCKSv4):
     def authorize(self, code, server, port, user):
         # Only support CONNECT
         if code != 1:
-            log.msg("SOCKS: Unsupported command code: " + str(code))
+            log.msg("Unsupported command code: " + str(code))
             return False
 
         # Arguments are mandatory, but it's possible that we're not running
         # in managed mode (or we hit #9162/#9163), so attempt to continue.
         socks_args = None
-        if user is not None:
-            try:
-                socks_args = csv.reader([user], delimiter=';',
-                                        escapechar='\\').next()
-            except cvsError, err:
-                log.msg("SOCKS: Failed to parse arguments")
-                return False
+        if len(user) > 0:
+            socks_args = self.state_mgr.split_args(user)
 
         user_orport = self.state_mgr.parse_args(server, socks_args)
         if user_orport is None:

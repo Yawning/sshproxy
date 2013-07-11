@@ -22,13 +22,33 @@ Drawbacks to this approach:
  * It depends on the user's system ssh to be sane.
  * I'm a C programmer, not a python one.
 
-PT Arguments:
- * "user=<USERNAME>" - The user on the bridge to authenticate as.
- * "orport=<ORPORT>" - The OR port on the bridge's loopback interface.
- * "privkey=<PRIVKEY>" - The RSA private key to use when authenticating.  The
-   code expects a PEM format RSA key, with the header/footer/newlines removed.
- * "ssh-rsa=<RSA HOST KEY>" - The RSA host key of the bridge (Base64 encoded).
- * "ssh-dss=<DSA HOST KEY>" - The DSA host key of the brdige (Base64 encoded).
- * "ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
- * "ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
- * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key of the bridge.  
+PT Bridge Line Arguments:
+ * "user=<USERNAME>" - The user on the bridge to authenticate as
+ * "orport=<ORPORT>" - The OR port on the bridge's loopback interface
+ * "privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
+   code expects a PEM format RSA key, with the header/footer/newlines removed)
+ * "ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
+ * "ssh-dss=<DSA HOST KEY>" - The DSA host key (Base64 encoded)
+ * "ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
+
+Command Line Arguments:
+ * "--user=<USERNAME>" - The user on the bridge to authenticate as
+ * "--orport=<ORPORT>" - The OR port on the bridge's loopback interface
+ * "--privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
+   code expects a PEM format RSA key, with the header/footer/newlines removed)
+ * "--ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
+ * "--ssh-dss=<DSA HOST KEY>" - The DSA host key (Base64 encoded)
+ * "--ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "--ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "--ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
+
+ Note: The command line arguments should only be used when Tor PT argument
+ passing is broken in some way.
+  * Tor 0.2.4.x - PT arguments are unsupported
+  * Current bleeding edge Tor - SOCKSv4 length is too limited (#9163)
+
+TODO:
+ * Logging can be more descriptive.
+ * Figure out py2exe so this works on windows, and build a mingw OpenSSH binary.
