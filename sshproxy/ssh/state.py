@@ -9,6 +9,7 @@ import os
 import csv
 import base64
 import hmac
+import sys
 from hashlib import sha1
 from tempfile import mkstemp
 
@@ -41,6 +42,10 @@ class state:
         self.temp_path = path
         self.known_hosts_path = os.path.abspath(os.path.join(self.temp_path,
                                                 "known_hosts"))
+        if sys.platform == "darwin":
+            # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
+            # Mountain Lion, sucks to be them.
+            self.use_ecdsa = False
 
     def get_args(self):
         return "user,orport,privkey,ssh-rsa,ssh-dss"
