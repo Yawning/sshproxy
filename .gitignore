@@ -1,3 +1,6 @@
 *.pyc
 *.swp
 *~
+dist/*
+build/*
+sshproxy.egg-info/*
