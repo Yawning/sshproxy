@@ -49,6 +49,68 @@ Command Line Arguments:
   * Tor 0.2.4.x - PT arguments are unsupported
   * Current bleeding edge Tor - SOCKSv4 length is too limited (#9163)
 
+Bridge Side Configuration:
+ 1) Add a user (Eg: sshproxy).  The password SHOULD be disabled, and
+    /sbin/nologin or similar SHOULD be used as a shell.
+
+ 2) Generate a RSA keypair for the user and place the private key in the
+    appropriate location (ssh-kegen -t rsa, id_rsa and id_rsa.pub should be
+    in ~sshproxy/id_rsa).  For this release, no passphrase should be specified
+    for the private key.
+
+ 3) Modify /etc/ssh/sshd_config to limit the user's capabilities.
+    Eg:
+      # Disconnect sessions that have been idle for > 600s (Optional)
+      # Warning: This is a global setting.
+      ClientAliveCountMax 0
+      ClientAliveInterval 600
+
+      Match User sshproxy
+	PasswordAuthentication no
+        AllowTcpForwarding yes
+        AllowAgentForwarding no
+        X11Forwarding no
+        PermitTunnel no
+        GatewayPorts no
+        MaxSessions 1
+        PermitOpen 127.0.0.1:9001
+        ForceCommand echo 'Shell access is not permited'
+
+ 4) Obtain the information that is needed for a bridge line.
+    * user -> The user account added in step 1
+    * orport -> The OR port that your copy of tor is listening on
+                (9001 by default)
+    * privkey -> The RSA privage key generated in step 2, with the PEM
+                 header/footer and newlines removed.
+    * ssh-rsa -> The Base64 encoded RSA host public key from
+                 /etc/ssh/ssh_host_rsa_key.pub
+    * ssh-dss -> The Base64 encoded DSA host public key from
+                 /etc/ssh/ssh_host_dsa_key.pub
+
+    If your sshd is ecdsa capable, you additionally need to supply the ECDSA
+    public key to your user.  Look at /etc/ssh/ssh_host_ecdsa_key.pub for the
+    key type/Base64 encoded key and supply the correct argument.
+
+ 5) Annoynymize ssh logs.
+    * Systems using syslog-ng >= 3.0 can use Rewrite
+        https://docs.indymedia.org/Devel/AnonIPSyslogNg
+    * Systems using older versions of syslog-ng can use the patches from
+      riseup.net.
+        https://we.riseup.net/debian/syslog
+    * Systems using rsyslog can use mmannon.
+        http://www.rsyslog.com/doc/mmanon.html
+    * Another option would be to run a separate instance of sshd just for the
+      sshproxy user started up with the "-q" option which disables logging
+      entirely (AllowUsers can be used to limit which users can use the given
+      sshd instance).
+
+    Which strategy you chose is dependent on what you consider to be best for
+    your system.  The author recommends sshd with -q, but as that requires
+    running one of the system's sshd instances on a non-standard port, the
+    author understands that this is not a valid option for everyone.
+
 TODO:
  * Logging can be more descriptive.
  * Figure out py2exe so this works on windows, and build a mingw OpenSSH binary.
+ * Generating a bridge line is kind of annoying for administrators, it would be
+   nice to provide some automation aids.
