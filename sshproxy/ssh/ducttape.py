@@ -14,6 +14,7 @@ In theory, this is where all the portability cruft will live, apart from the
 py2exe stuff.
 """
 
+import re
 import os
 import sys
 
@@ -90,7 +91,9 @@ class ducttape(protocol.ProcessProtocol):
 
     def errReceived(self, data):
         # Welp, something went terribly wrong, and ssh is bitching over stderr
-        log.msg("SSH Error(?): " + data)
+        data_scrubbed = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+                               lambda x: "[scrubbed]", data)
+        log.msg("SSH Error(?): " + data_scrubbed)
         self.transport.signalProcess("KILL")
 
     def inConnectionLost(self):
