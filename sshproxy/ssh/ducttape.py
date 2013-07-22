@@ -24,7 +24,7 @@ from twisted.internet import protocol, reactor
 from twisted.python import log
 
 _SSH_ARGS = [
-    "ssh",                  # XXX: Windows?
+    "ssh",                  # XXX: Windows? (Probably ok)
     "-o ForwardAgent no",
     "-o ForwardX11 no",
     "-o BatchMode yes",
@@ -35,8 +35,9 @@ _SSH_ARGS = [
     "-o PasswordAuthentication no",
     "-o IdentitiesOnly yes",
     "-o ControlMaster no"   # In theory this can save us connections, but
-                            # certain versions of OpenSSH break when with this
-                            # enabled when using -W.
+                            # certain versions of OpenSSH break with this
+                            # enabled when using -W, and there should only
+                            # ever be one connection per bridge at a time.
     # XXX: Check to see if there are any other options that can screw us if we
     # don't set them explicitly.
 ]
@@ -47,7 +48,8 @@ _NULL_FILE = None
 
 # As far as I know, no one uses this cert shit, but if the remote sshd is
 # configured to use them then negotiation will fail because we don't support
-# verifying those at the moment.
+# verifying those at the moment.  It's not possible to remove them since
+# we will look different from standard OpenSSH.
 _SSH_ARGS_HKEY_NO_ECDSA = (
     "-o HostKeyAlgorithms "
     "ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,"
@@ -182,6 +184,5 @@ def init_ducttape(state):
         state.use_ecdsa = False
 
     state.ssh_works = True
-
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
