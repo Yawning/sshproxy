@@ -28,7 +28,7 @@ PT Bridge Line Arguments:
  * "privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
    code expects a PEM format RSA key, with the header/footer/newlines removed)
  * "ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
- * "ssh-dss=<DSA HOST KEY>" - The DSA host key (Base64 encoded)
+ * "ssh-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
  * "ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
  * "ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
  * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
@@ -39,7 +39,7 @@ Command Line Arguments:
  * "--privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
    code expects a PEM format RSA key, with the header/footer/newlines removed)
  * "--ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
- * "--ssh-dss=<DSA HOST KEY>" - The DSA host key (Base64 encoded)
+ * "--ssh-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
  * "--ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
  * "--ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
  * "--ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
@@ -84,12 +84,17 @@ Bridge Side Configuration:
                  header/footer and newlines removed.
     * ssh-rsa -> The Base64 encoded RSA host public key from
                  /etc/ssh/ssh_host_rsa_key.pub
-    * ssh-dss -> The Base64 encoded DSA host public key from
+    * ssh-dss -> (Optional) The Base64 encoded DSA host public key from
                  /etc/ssh/ssh_host_dsa_key.pub
 
     If your sshd is ecdsa capable, you additionally need to supply the ECDSA
     public key to your user.  Look at /etc/ssh/ssh_host_ecdsa_key.pub for the
     key type/Base64 encoded key and supply the correct argument.
+
+    By default OpenSSH will use ECDSA->RSA->DSA as the hostkey algorithm, thus
+    the ssh-dss argument is not strictly required.  However if your sshd is
+    configured to use ECDSA, then providing a ECDSA hostkey as part of the
+    bridge line is required.
 
  5) Annoynymize ssh logs.
     * Systems using syslog-ng >= 3.0 can use Rewrite
@@ -110,7 +115,6 @@ Bridge Side Configuration:
     author understands that this is not a valid option for everyone.
 
 TODO:
- * Logging can be more descriptive.
  * Figure out py2exe so this works on windows, and build a mingw OpenSSH binary.
  * Generating a bridge line is kind of annoying for administrators, it would be
    nice to provide some automation aids.
