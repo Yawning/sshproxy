@@ -4,3 +4,4 @@
 dist/*
 build/*
 sshproxy.egg-info/*
+py2exe_bundle
