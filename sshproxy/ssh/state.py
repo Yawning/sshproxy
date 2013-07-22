@@ -113,6 +113,11 @@ class state:
                     self.add_known_host(server, "ecdsa-sha2-nistp521",
                                         arg[20:])
                     continue
+            else:
+                # ECDSA is disabled but the user may have provided hostkeys:
+                # just silently ignore such arguments.
+                if arg.startswith("ecdsa-sha2-nistp"):
+                    continue
             log.msg("SOCKS: Ignoring invalid argument: " + arg)
 
         if (user is None or orport is None or key_pem is None or

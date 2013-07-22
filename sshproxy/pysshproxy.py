@@ -102,6 +102,8 @@ def pysshproxy():
     # TODO: It would be nice to support more than one host worth of
     # parameters somehow, maybe just use a config file?
     parser = argparse.ArgumentParser(description="SSH network proxy")
+    parser.add_argument("--no-ecdsa", action="store_true", default=False,
+                        help="Disable ECDSA")
     parser.add_argument("--user", help="Remote user")
     parser.add_argument("--privkey", help="RSA Private Key")  # XXX: File?
     parser.add_argument("--orport", type=int, help="Remote ORPort")
@@ -152,13 +154,17 @@ def pysshproxy():
 
     # Initialize the ssh state manager
     state = ssh_state.state(_tmpdir)
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:   # XXX: Ewwwwww.
         state.default_args = build_default_args(args)
         if state.default_args is None:
             sys.exit(1)
     if state.ssh_works is False:
         pyptlib.client.reportFailre("ssh", "SSH client appears non-functional")
         sys.exit(1)
+
+    if args.no_ecdsa is True:
+        log.msg("SSH: ECDSA support disabled")
+        state.use_ecdsa = False
 
     # Setup the SOCKSv4 proxy
     factory = socks.SOCKSv4Factory(state)
