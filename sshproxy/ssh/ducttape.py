@@ -137,9 +137,8 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     return process_protocol
 
 
-def init_ducttape():
-    # Do a bit of runtime setup to figure out the paths of the various
-    # files needed to make the ssh executable work.
+def init_ducttape(state):
+    # Do the platform specific runtime setup
 
     global _SSH_EXECUTABLE
     global _NULL_FILE
@@ -154,7 +153,11 @@ def init_ducttape():
         _SSH_EXECUTABLE = "/usr/bin/ssh"
         _NULL_FILE = "/dev/null"
 
+    # Give a best guess as to if ECDSA is supported
+    if sys.platform == "darwin":
+        # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
+        # Mountain Lion, sucks to be them.
+        state.use_ecdsa = False
 
-init_ducttape()
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

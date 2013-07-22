@@ -15,6 +15,8 @@ from tempfile import mkstemp
 
 from twisted.python import log
 
+from sshproxy.ssh.ducttape import init_ducttape
+
 
 class state:
     temp_path = None
@@ -42,10 +44,7 @@ class state:
         self.temp_path = path
         self.known_hosts_path = os.path.abspath(os.path.join(self.temp_path,
                                                 "known_hosts"))
-        if sys.platform == "darwin":
-            # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
-            # Mountain Lion, sucks to be them.
-            self.use_ecdsa = False
+        init_ducttape(self)
 
     def get_args(self):
         return "user,orport,privkey,ssh-rsa,ssh-dss"
