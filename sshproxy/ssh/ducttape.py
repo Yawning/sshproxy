@@ -174,9 +174,11 @@ def init_ducttape(state):
         return
     v = float(m.group(1))
 
-    if sys.platform == "darwin" or v < 5.6:
-        # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
-        # Mountain Lion, sucks to be them.
+    # OpenSSH got ECDSA support starting from v5.6
+    #
+    # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
+    # Mountain Lion despite being fairly recent, sucks to be them.
+    if v < 5.6 or sys.platform == "darwin":
         state.use_ecdsa = False
 
     state.ssh_works = True
