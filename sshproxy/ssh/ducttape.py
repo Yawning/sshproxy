@@ -17,6 +17,7 @@ py2exe stuff.
 import re
 import os
 import sys
+import subprocess
 
 from twisted.internet import protocol, reactor
 
@@ -153,11 +154,32 @@ def init_ducttape(state):
         _SSH_EXECUTABLE = "/usr/bin/ssh"
         _NULL_FILE = "/dev/null"
 
-    # Give a best guess as to if ECDSA is supported
-    if sys.platform == "darwin":
+    # Run ssh - V to ensure that the SSH excutable works, that it is OpenSSH,
+    # and so that we can determine if it supports ECDSA or not.
+    #
+    # XXX: I *should* use utils.getProcessOutput, but it's a lot easier
+    # to use subprocess since I want this to be blocking.
+    version = None
+    try:
+        version = subprocess.check_output([_SSH_EXECUTABLE, "-V"],
+                                          stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as err:
+        log.msg("SSH: Failed check OpenSSH version " + str(e))
+        return
+    version = version.strip()
+    log.msg("SSH Version: " + version)
+    m = re.match(r"OpenSSH_(\d+\.\d+)", version)
+    if m is None:
+        log.msg("SSH: Failed to determine SSH client major/minor")
+        return
+    v = float(m.group(1))
+
+    if sys.platform == "darwin" or v < 5.6:
         # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
         # Mountain Lion, sucks to be them.
         state.use_ecdsa = False
+
+    state.ssh_works = True
 
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4

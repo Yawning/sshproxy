@@ -25,6 +25,7 @@ class state:
     known_hosts_dirty = False
     cached_credentials = {}
     use_ecdsa = True
+    ssh_works = False
 
     default_args = None
     cached_args = {}

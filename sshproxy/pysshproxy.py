@@ -156,6 +156,9 @@ def pysshproxy():
         state.default_args = build_default_args(args)
         if state.default_args is None:
             sys.exit(1)
+    if state.ssh_works is False:
+        pyptlib.client.reportFailre("ssh", "SSH client appears non-functional")
+        sys.exit(1)
 
     # Setup the SOCKSv4 proxy
     factory = socks.SOCKSv4Factory(state)
