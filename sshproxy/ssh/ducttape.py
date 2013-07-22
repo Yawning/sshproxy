@@ -181,6 +181,7 @@ def init_ducttape(state):
     # Apple's OpenSSH/OpenSSL does not support ECDSA at least on
     # Mountain Lion despite being fairly recent, sucks to be them.
     if v < 5.6 or sys.platform == "darwin":
+        log.msg("SSH: The installed OpenSSH version does not support ECDSA")
         state.use_ecdsa = False
 
     state.ssh_works = True
