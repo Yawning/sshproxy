@@ -3,7 +3,20 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Insert the root directory of the project to the path
+# See: http://www.py2exe.org/index.cgi/WhereAmI
+#
+# TODO: This should handle unicode path names
+if hasattr(sys, "frozen"):
+    exe_path = os.path.dirname(sys.executable)
+else:
+    exe_path = os.path.dirname(__file__)
+root_path = os.path.abspath(os.path.join(exe_path, ".."))
+
+sys.path.insert(0, root_path)
 
 from sshproxy.pysshproxy import run
 run()
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
