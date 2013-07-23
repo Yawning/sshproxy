@@ -20,6 +20,7 @@ import sys
 import subprocess
 
 from twisted.internet import protocol, reactor
+from twisted.internet.protocol import Factory, Protocol, ClientCreator
 
 from twisted.python import log
 
@@ -44,6 +45,8 @@ _SSH_ARGS = [
 
 
 _SSH_EXECUTABLE = None
+_SSH_ENV = None
+_SSH_W_IS_FUCKED = False
 _NULL_FILE = None
 
 # As far as I know, no one uses this cert shit, but if the remote sshd is
@@ -74,23 +77,53 @@ class ducttape(protocol.ProcessProtocol):
     host = None
     port = None
 
+    l_client_creator = None
+    l_client = None
+    l_port = None
+    l_attempts = None
+
     def __init__(self, socks_obj, host, port):
         self.socks_obj = socks_obj
         self.host = host
         self.port = port
 
     def connectionMade(self):
+        if _SSH_W_IS_FUCKED is False:
+            self.connectionReallyMade()
+        else:
+            log.msg("SSH: Using -L, port:" + str(self.l_port))
+            self.l_client_creator = ClientCreator(reactor, ducttape_l_client, self)
+            self.l_attempts = 0
+            self.scheduleLocalConnect()
+
+    def scheduleLocalConnect(self):
+        if self.l_attempts > 3:
+            log.msg("SSH: Giving up connecting to local proxy")
+            self.transport.signalProcess("KILL")
+        else:
+            self.l_attempts += 1
+            reactor.callLater(self.l_attempts * 5, self.tryLocalConnect)
+
+    def tryLocalConnect(self):
+        log.msg("SSH: Attempting to connect to local proxy port, try ",
+            self.l_attempts)
+        d = self.l_client_creator.connectTCP("127.0.0.1", self.l_port)
+        d.addErrback(ducttape_l_client_errback, self)
+
+    def connectionReallyMade(self):
         # Send the SOCKS reply, and set us up as the otherConn so that data
         # can be relayed
         self.socks_obj.makeReply(90, 0, port=self.port, ip=self.host)
         self.socks_obj.otherConn = self
 
     def outReceived(self, data):
-        # Relay the data
         self.socks_obj.transport.write(data)
 
     def write(self, data):
-        self.transport.write(data)
+        if _SSH_W_IS_FUCKED is False:
+            self.transport.write(data)
+        else:
+            self.l_client.write(data)
 
     def errReceived(self, data):
         # Welp, something went terribly wrong, and ssh is bitching over stderr
@@ -115,6 +148,34 @@ class ducttape(protocol.ProcessProtocol):
         self.socks_obj.transport.loseConnection()
 
 
+# Ugh, ssh -W is flakly on every single windows port of OpenSSH that I've
+# managed to find.
+class ducttape_l_client(Protocol):
+    ducttape_obj = None
+
+    def __init__(self, ducttape_obj):
+        self.ducttape_obj = ducttape_obj
+
+    def connectionMade(self):
+        self.ducttape_obj.l_client = self
+        self.ducttape_obj.connectionReallyMade()
+
+    def dataReceived(self, data):
+        self.ducttape_obj.outReceived(data)
+
+    def write(self, data):
+        self.transport.write(data)
+
+    def connectionLost(self, reason):
+        ducttape_obj.transport.signalProcess("KILL")
+        ducttape_obj = None
+
+
+def ducttape_l_client_errback(error, dt):
+    dt.scheduleLocalConnect()
+    return error
+
+
 def new_ducttape(socks_obj, host, port, user, key, orport):
     # I *should* validate that I have a known_hosts entry for host and that the
     # key_file is valid.  Can't be bothered for now, and ssh will error out if
@@ -131,11 +192,21 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     else:
         args.append(_SSH_ARGS_HKEY_NO_ECDSA)
     args.append('-o IdentityFile "' + key + '"')
-    args.append("-W 127.0.0.1:" + str(orport))
     args.append("-p " + str(port))
-    args.append(user + "@" + host)
 
-    reactor.spawnProcess(process_protocol, _SSH_EXECUTABLE, args)
+    if _SSH_W_IS_FUCKED is True:
+        p = reactor.listenTCP(0, Factory())
+        l_port = p.getHost().port
+        args.append("-L localhost:" + str(l_port) + ":127.0.0.1:" + str(orport))
+        args.append("-T")
+        args.append("-N")
+        process_protocol.l_port = l_port
+        p.stopListening()
+    else:
+        args.append("-W 127.0.0.1:" + str(orport))
+
+    args.append(user + "@" + host)
+    reactor.spawnProcess(process_protocol, _SSH_EXECUTABLE, args, env=_SSH_ENV)
 
     return process_protocol
 
@@ -144,6 +215,8 @@ def init_ducttape(state):
     # Do the platform specific runtime setup
 
     global _SSH_EXECUTABLE
+    global _SSH_ENV
+    global _SSH_W_IS_FUCKED
     global _NULL_FILE
     frozen = getattr(sys, "frozen", "")
 
@@ -152,6 +225,8 @@ def init_ducttape(state):
         _SSH_EXECUTABLE = os.path.abspath(os.path.join(os.path.dirname(
             sys.executable), "ssh.exe"))
         _NULL_FILE = "NUL"
+        _SSH_W_IS_FUCKED = True
+        _SSH_ENV = { "CYGWIN": "nodosfilewarning" }
     else:
         _SSH_EXECUTABLE = "/usr/bin/ssh"
         _NULL_FILE = "/dev/null"
