@@ -114,6 +114,11 @@ Bridge Side Configuration:
     running one of the system's sshd instances on a non-standard port, the
     author understands that this is not a valid option for everyone.
 
+Windows notes:
+ * If the generated executable fails to find zope.interface, chances are
+   Lib/site-packages/zope does not have a __init__.py, create one, and rerun
+   py2exe to regenerate the executable.
+
 TODO:
  * Figure out py2exe so this works on windows, and build a mingw OpenSSH binary.
  * Generating a bridge line is kind of annoying for administrators, it would be

@@ -123,14 +123,14 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
 
     args = list(_SSH_ARGS)
     #args.append("-vvv")
-    args.append("-o UserKnownHostsFile " +
-                socks_obj.state_mgr.known_hosts_path)
-    args.append("-o GlobalKnownHostsFile " + _NULL_FILE)
+    args.append('-o UserKnownHostsFile "' +
+                socks_obj.state_mgr.known_hosts_path + '"')
+    args.append('-o GlobalKnownHostsFile "' + _NULL_FILE + '"')
     if socks_obj.state_mgr.use_ecdsa is True:
         args.append(_SSH_ARGS_HKEY_ECDSA)
     else:
         args.append(_SSH_ARGS_HKEY_NO_ECDSA)
-    args.append("-o IdentityFile " + key)
+    args.append('-o IdentityFile "' + key + '"')
     args.append("-W 127.0.0.1:" + str(orport))
     args.append("-p " + str(port))
     args.append(user + "@" + host)
