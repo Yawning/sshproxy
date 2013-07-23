@@ -119,9 +119,12 @@ Windows notes:
    Lib/site-packages/zope does not have a __init__.py, create one, and rerun
    py2exe to regenerate the executable.
  * I have not managed to find a port of OpenSSH to windows that has -W that
-   actually works.  Thus on windows this uses -L.
+   actually works.  Thus on windows this uses -L and the code there is
+   considerably more... involved.
  * BUG: For some reason, the atexit hook doesn't get called, so the proxy leaves
    it's state directory in the pt_state location.
+ * BUG: It shouldn't open a console window, there's probably a py2exe option
+   that can hide it.
 
 TODO:
  * Generating a bridge line is kind of annoying for administrators, it would be

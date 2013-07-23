@@ -25,7 +25,7 @@ from twisted.internet.protocol import Factory, Protocol, ClientCreator
 from twisted.python import log
 
 _SSH_ARGS = [
-    "ssh",                  # XXX: Windows? (Probably ok)
+    "ssh",
     "-o ForwardAgent no",
     "-o ForwardX11 no",
     "-o BatchMode yes",
@@ -92,7 +92,8 @@ class ducttape(protocol.ProcessProtocol):
             self.connectionReallyMade()
         else:
             log.msg("SSH: Using -L, port:" + str(self.l_port))
-            self.l_client_creator = ClientCreator(reactor, ducttape_l_client, self)
+            self.l_client_creator = ClientCreator(reactor, ducttape_l_client,
+                                                  self)
             self.l_attempts = 0
             self.scheduleLocalConnect()
 
@@ -106,7 +107,7 @@ class ducttape(protocol.ProcessProtocol):
 
     def tryLocalConnect(self):
         log.msg("SSH: Attempting to connect to local proxy port, try ",
-            self.l_attempts)
+                self.l_attempts)
         d = self.l_client_creator.connectTCP("127.0.0.1", self.l_port)
         d.addErrback(ducttape_l_client_errback, self)
 
@@ -129,7 +130,17 @@ class ducttape(protocol.ProcessProtocol):
         # Welp, something went terribly wrong, and ssh is bitching over stderr
         data_scrubbed = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
                                lambda x: "[scrubbed]", data)
+        data_scrubbed = data_scrubbed.strip()
         log.msg("SSH Error(?): " + data_scrubbed)
+
+        # Not all versions of OpenSSH in the wild have GSSAPI support.
+        #
+        # Yes, this defaults to "no", but some asshats^w^wDebian ships
+        # a ssh_config with it set to "yes".
+        #
+        if re.search('Unsupported option "GSSAPIAuthentication"', data):
+            return
+
         self.transport.signalProcess("KILL")
 
     def inConnectionLost(self):
@@ -195,6 +206,9 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     args.append("-p " + str(port))
 
     if _SSH_W_IS_FUCKED is True:
+        # Find a free unallocated port to listen on
+        #
+        # XXX: Yes, there is a race condition here.
         p = reactor.listenTCP(0, Factory())
         l_port = p.getHost().port
         args.append("-L localhost:" + str(l_port) + ":127.0.0.1:" + str(orport))
@@ -226,7 +240,7 @@ def init_ducttape(state):
             sys.executable), "ssh.exe"))
         _NULL_FILE = "NUL"
         _SSH_W_IS_FUCKED = True
-        _SSH_ENV = { "CYGWIN": "nodosfilewarning" }
+        _SSH_ENV = {"CYGWIN": "nodosfilewarning"}
     else:
         _SSH_EXECUTABLE = "/usr/bin/ssh"
         _NULL_FILE = "/dev/null"
