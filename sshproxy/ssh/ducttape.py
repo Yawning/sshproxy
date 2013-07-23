@@ -161,7 +161,10 @@ class ducttape(protocol.ProcessProtocol):
         self.socks_obj.state_mgr.l_clients.remove(self)
 
     def socksClosed(self):
-        self.transport.signalProcess("KILL")
+        try:
+            self.transport.signalProcess("KILL")
+        except Exception:
+            sys.exc_clear()
 
 
 # Ugh, ssh -W is flakly on every single windows port of OpenSSH that I've
@@ -183,7 +186,10 @@ class ducttape_l_client(Protocol):
         self.transport.write(data)
 
     def connectionLost(self, reason):
-        self.ducttape_obj.transport.signalProcess("KILL")
+        try:
+            self.ducttape_obj.transport.signalProcess("KILL")
+        except Exception:
+            sys.exc_clear()
         self.ducttape_obj = None
 
 
