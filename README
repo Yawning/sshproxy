@@ -121,12 +121,15 @@ Windows notes:
  * I have not managed to find a port of OpenSSH to windows that has -W that
    actually works.  Thus on windows this uses -L and the code there is
    considerably more... involved.
- * BUG: For some reason, the atexit hook doesn't get called, so the proxy leaves
-   it's state directory in the pt_state location.
  * BUG: It shouldn't open a console window, there's probably a py2exe option
-   that can hide it.
- * BUG: On terminating the tor browser bundle this leaves behind ssh.exe.  If
-   atexit worked, I can go and kill everything.
+   that can hide it (TBB 3.0 Alpha issue?)
+ * tor_terminate_process which handles PT cleanup uses TerminateProcess.
+   Per http://msdn.microsoft.com/en-us/library/ms686722%28VS.85%29
+    * "When the system is terminating a process, it does not terminate any
+       child processes that the process has created." -> if any ssh.exe child
+       processes are active, they will remain.
+    * "all threads of the process are terminated immediately with no chance to
+       run additional code" -> my atexit hook will never be called.
 
 TODO:
  * Generating a bridge line is kind of annoying for administrators, it would be
