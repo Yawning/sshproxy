@@ -29,6 +29,7 @@ from sshproxy.ssh.state import arg_to_pem
 
 _LOG_FILE_NAME = "sshproxy.log"
 _tmpdir = None
+_state = None
 
 
 def cleanup():
@@ -37,6 +38,15 @@ def cleanup():
         # Blow away the _tmpdir
         rmtree(_tmpdir, True)
         _tmpdir = None
+
+def ctrl_handler(sig):
+    # Any console event is something evil happening that requires cleanup
+    global _state
+    if _state is not None:
+        _state.on_shutdown()
+        _state = None
+    cleanup()
+    return True
 
 
 def build_default_args(args):
@@ -152,22 +162,32 @@ def pysshproxy():
     signal(SIGTERM, cleanup)
     log.msg("Temp dir: " + _tmpdir)
 
-    # Initialize the ssh state manager
-    state = ssh_state.state(_tmpdir)
-    if len(sys.argv) > 2:   # XXX: Ewwwwww.
-        state.default_args = build_default_args(args)
-        if state.default_args is None:
+    if os.name == "nt":
+        try:
+            import win32api
+            win32api.SetConsoleCtrlHandler(ctrl_handler, True)
+        except:
+            log.msg("Failed to install ConsoleCtrlHandler")
+            pyptlib.client.reportFailure("ssh", "Failed to install CtrlHandler")
             sys.exit(1)
-    if state.ssh_works is False:
-        pyptlib.client.reportFailre("ssh", "SSH client appears non-functional")
+
+    # Initialize the ssh state manager
+    global _state
+    _state = ssh_state.state(_tmpdir)
+    if len(sys.argv) > 2:   # XXX: Ewwwwww.
+        _state.default_args = build_default_args(args)
+        if _state.default_args is None:
+            sys.exit(1)
+    if _state.ssh_works is False:
+        pyptlib.client.reportFailure("ssh", "SSH client appears non-functional")
         sys.exit(1)
 
     if args.no_ecdsa is True:
         log.msg("SSH: ECDSA support disabled")
-        state.use_ecdsa = False
+        _state.use_ecdsa = False
 
     # Setup the SOCKSv4 proxy
-    factory = socks.SOCKSv4Factory(state)
+    factory = socks.SOCKSv4Factory(_state)
     addrport = reactor.listenTCP(0, factory, interface="localhost")
 
     # XXX: Trap SIGINT (Note: obfsproxy doesn't do this either)
@@ -179,7 +199,7 @@ def pysshproxy():
             # pyptlib is bugged(?) and doesn't handle ARGS/OPT-ARGS correctly
             # pyptlib.client.reportSuccess("ssh", 4, (addrport.getHost().host,
             #                                         addrport.getHost().port),
-            #                              state.get_args(), state.get_optargs())
+            #                              _state.get_args(), _state.get_optargs())
             pyptlib.client.reportSuccess("ssh", 4, (addrport.getHost().host,
                                                     addrport.getHost().port))
             start_twisted = True

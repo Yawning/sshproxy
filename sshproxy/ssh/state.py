@@ -26,6 +26,7 @@ class state:
     cached_credentials = {}
     use_ecdsa = True
     ssh_works = False
+    l_clients = []
 
     default_args = None
     cached_args = {}
@@ -246,6 +247,11 @@ class state:
         if key in self.cached_credentials:
             return self.cached_credentials[key]["file"]
         return None
+
+    def on_shutdown(self):
+        for client in self.l_clients:
+            client.transport.signalProcess("KILL")
+        self.l_clients = []
 
 
 def arg_to_pem(key):

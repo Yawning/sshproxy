@@ -16,6 +16,7 @@ class SOCKSv4Protocol(socks.SOCKSv4):
     state_mgr = None
 
     # ssh settings that aren't stored in the state_mgr
+    dt = None
     user = None
     orport = None
 
@@ -46,10 +47,16 @@ class SOCKSv4Protocol(socks.SOCKSv4):
     def connectClass(self, host, port, klass, *args):
         # Ignore klass/args (SOCKSv4Outgoing/self) and just use ducttape
         key = self.state_mgr.get_auth_credentials(self.user, host)
-        dt = new_ducttape(self, host, port, self.user, key,
-                          self.orport)
+        self.dt = new_ducttape(self, host, port, self.user, key,
+                               self.orport)
 
         return defer.succeed(True)
+
+    def connectionLost(self, reason):
+        if self.dt.l_client is not None:
+            self.dt.socksClosed()
+        if self.otherConn:
+            self.otherConn.transport.loseConnection()
 
 
 class SOCKSv4Factory(Factory):
