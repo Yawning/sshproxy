@@ -125,6 +125,8 @@ Windows notes:
    it's state directory in the pt_state location.
  * BUG: It shouldn't open a console window, there's probably a py2exe option
    that can hide it.
+ * BUG: On terminating the tor browser bundle this leaves behind ssh.exe.  If
+   atexit worked, I can go and kill everything.
 
 TODO:
  * Generating a bridge line is kind of annoying for administrators, it would be
