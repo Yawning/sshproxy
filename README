@@ -54,7 +54,7 @@ Bridge Side Configuration:
     /sbin/nologin or similar SHOULD be used as a shell.
 
  2) Generate a RSA keypair for the user and place the private key in the
-    appropriate location (ssh-kegen -t rsa, id_rsa and id_rsa.pub should be
+    appropriate location (ssh-keygen -t rsa, id_rsa and id_rsa.pub should be
     in ~sshproxy/id_rsa).  For this release, no passphrase should be specified
     for the private key.
 
