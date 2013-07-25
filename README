@@ -132,5 +132,7 @@ Windows notes:
        run additional code" -> my atexit hook will never be called.
 
 TODO:
+ * Improve documentation
+ * Rename ssh-rsa, ssh-dss and ecdsa-* to clarity that they are hostkeys
  * Generating a bridge line is kind of annoying for administrators, it would be
    nice to provide some automation aids.

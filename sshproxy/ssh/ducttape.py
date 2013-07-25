@@ -206,6 +206,8 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
 
     args = list(_SSH_ARGS)
     #args.append("-vvv")
+    args.append("-F")
+    args.append(_NULL_FILE)
     args.append('-o UserKnownHostsFile "' +
                 socks_obj.state_mgr.known_hosts_path + '"')
     args.append('-o GlobalKnownHostsFile "' + _NULL_FILE + '"')
