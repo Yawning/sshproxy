@@ -128,24 +128,13 @@ class ducttape(protocol.ProcessProtocol):
             self.l_client.write(data)
 
     def errReceived(self, data):
-        # Welp, something went terribly wrong, and ssh is bitching over stderr
+        # Hmmm, got output from OpenSSH over stderr, either debug logging
+        # is enabled or somethign went horribly wrong and OpenSSH is about
+        # to die anyway.  Scrub IP addresses and log it for the user.
         data_scrubbed = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
                                lambda x: "[scrubbed]", data)
         data_scrubbed = data_scrubbed.strip()
         log.msg("SSH stderr: " + data_scrubbed)
-
-        if self.socks_obj.state_mgr.debug is True:
-            return
-
-        # Not all versions of OpenSSH in the wild have GSSAPI support.
-        #
-        # Yes, this defaults to "no", but some asshats^w^wDebian ships
-        # a ssh_config with it set to "yes".
-        #
-        if re.search('Unsupported option "GSSAPIAuthentication"', data):
-            return
-
-        self.transport.signalProcess("KILL")
 
     def inConnectionLost(self):
         pass
