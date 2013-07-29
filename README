@@ -34,6 +34,8 @@ PT Bridge Line Arguments:
  * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
 
 Command Line Arguments:
+ * "--no-ecdsa" - Force disable ECDSA support.
+ * "--debug" - Enable verbose ssh client logging.
  * "--user=<USERNAME>" - The user on the bridge to authenticate as
  * "--orport=<ORPORT>" - The OR port on the bridge's loopback interface
  * "--privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The

@@ -132,7 +132,10 @@ class ducttape(protocol.ProcessProtocol):
         data_scrubbed = re.sub(r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
                                lambda x: "[scrubbed]", data)
         data_scrubbed = data_scrubbed.strip()
-        log.msg("SSH Error(?): " + data_scrubbed)
+        log.msg("SSH stderr: " + data_scrubbed)
+
+        if self.socks_obj.state_mgr.debug is True:
+            return
 
         # Not all versions of OpenSSH in the wild have GSSAPI support.
         #
@@ -205,7 +208,8 @@ def new_ducttape(socks_obj, host, port, user, key, orport):
     process_protocol = ducttape(socks_obj, host, port)
 
     args = list(_SSH_ARGS)
-    #args.append("-vvv")
+    if socks_obj.state_mgr.debug is True:
+        args.append("-vvv")
     args.append("-F")
     args.append(_NULL_FILE)
     args.append('-o UserKnownHostsFile "' +

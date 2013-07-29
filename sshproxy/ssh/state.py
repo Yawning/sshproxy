@@ -28,6 +28,7 @@ class state:
     ssh_works = False
     l_clients = []
 
+    debug = False
     default_args = None
     cached_args = {}
 

@@ -39,6 +39,7 @@ def cleanup():
         rmtree(_tmpdir, True)
         _tmpdir = None
 
+
 def ctrl_handler(sig):
     # Any console event is something evil happening that requires cleanup
     global _state
@@ -81,23 +82,25 @@ def build_default_args(args):
     if args.ssh_dss is not None:
         s.append("ssh-dss=" + args.ssh_dss)
 
-    nr_ecdsa = 0
-    if args.ecdsa_sha2_nistp256 is not None:
-        s.append("ecdsa-sha2-nistp256=" + args.ecdsa_sha2_nistp256)
-        nr_ecdsa += 1
+    if args.no_ecdsa is False:
+        nr_ecdsa = 0
+        if args.ecdsa_sha2_nistp256 is not None:
+            s.append("ecdsa-sha2-nistp256=" + args.ecdsa_sha2_nistp256)
+            nr_ecdsa += 1
 
-    if args.ecdsa_sha2_nistp384 is not None:
-        s.append("ecdsa-sha2-nistp384=" + args.ecdsa_sha2_nistp384)
-        nr_ecdsa += 1
+        if args.ecdsa_sha2_nistp384 is not None:
+            s.append("ecdsa-sha2-nistp384=" + args.ecdsa_sha2_nistp384)
+            nr_ecdsa += 1
 
-    if args.ecdsa_sha2_nistp521 is not None:
-        s.append("ecdsa-sha2-nistp521=" + args.ecdsa_sha2_nistp521)
-        nr_ecdsa += 1
+        if args.ecdsa_sha2_nistp521 is not None:
+            s.append("ecdsa-sha2-nistp521=" + args.ecdsa_sha2_nistp521)
+            nr_ecdsa += 1
 
-    if nr_ecdsa > 1:
-        pyptlib.client.reportFailure("ssh", "ARGV: Expected one ECDSA Public "
-                                     "Hostkey, got " + str(nr_ecdsa))
-        return None
+        if nr_ecdsa > 1:
+            pyptlib.client.reportFailure("ssh", "ARGV: Expected one ECDSA"
+                                         "Public Hostkey, got " +
+                                         str(nr_ecdsa))
+            return None
 
     # XXX: Do I need to escape this at all?
     return ';'.join(s)
@@ -114,6 +117,8 @@ def pysshproxy():
     parser = argparse.ArgumentParser(description="SSH network proxy")
     parser.add_argument("--no-ecdsa", action="store_true", default=False,
                         help="Disable ECDSA")
+    parser.add_argument("--debug", action="store_true", default=False,
+                        help="SSH Debug Logging")
     parser.add_argument("--user", help="Remote user")
     parser.add_argument("--privkey", help="RSA Private Key")  # XXX: File?
     parser.add_argument("--orport", type=int, help="Remote ORPort")
@@ -127,6 +132,7 @@ def pysshproxy():
     group.add_argument("--ecdsa-sha2-nistp521",
                        help="Remote ECDSA NIST 521 Public Hostkey")
     args = parser.parse_args()
+    optional_args = ["debug", "no_ecdsa"]
 
     # Bootstrap the pluggable transport protocol
     try:
@@ -171,20 +177,32 @@ def pysshproxy():
             pyptlib.client.reportFailure("ssh", "Failed to install CtrlHandler")
             sys.exit(1)
 
-    # Initialize the ssh state manager
+    # Initialize the ssh state manager, and handle command line arguments
     global _state
     _state = ssh_state.state(_tmpdir)
-    if len(sys.argv) > 2:   # XXX: Ewwwwww.
-        _state.default_args = build_default_args(args)
-        if _state.default_args is None:
-            sys.exit(1)
-    if _state.ssh_works is False:
-        pyptlib.client.reportFailure("ssh", "SSH client appears non-functional")
-        sys.exit(1)
+
+    if args.debug is True:
+        log.msg("SSH: Verbose logging enabled")
+        _state.debug = True
 
     if args.no_ecdsa is True:
         log.msg("SSH: ECDSA support disabled")
         _state.use_ecdsa = False
+
+    have_args = False
+    for k, v in args.__dict__.iteritems():
+        if k not in optional_args and v is not None:
+            have_args = True
+            break
+
+    if have_args is True:
+        _state.default_args = build_default_args(args)
+        if _state.default_args is None:
+            sys.exit(1)
+
+    if _state.ssh_works is False:
+        pyptlib.client.reportFailure("ssh", "SSH client appears non-functional")
+        sys.exit(1)
 
     # Setup the SOCKSv4 proxy
     factory = socks.SOCKSv4Factory(_state)
@@ -197,9 +215,8 @@ def pysshproxy():
     for transport in info["transports"]:
         if transport == "ssh":
             # pyptlib is bugged(?) and doesn't handle ARGS/OPT-ARGS correctly
-            # pyptlib.client.reportSuccess("ssh", 4, (addrport.getHost().host,
-            #                                         addrport.getHost().port),
-            #                              _state.get_args(), _state.get_optargs())
+            # when it does, _state.get_args()/_state.get_optargs() will give
+            # what is expected.
             pyptlib.client.reportSuccess("ssh", 4, (addrport.getHost().host,
                                                     addrport.getHost().port))
             start_twisted = True
