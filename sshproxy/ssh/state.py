@@ -50,12 +50,13 @@ class state:
         init_ducttape(self)
 
     def get_args(self):
-        return "user,orport,privkey,ssh-rsa,ssh-dss"
+        return "user,orport,privkey,ssh-rsa"
 
     def get_optargs(self):
+        s = "ssh-dss"
         if self.use_ecdsa is True:
-            return ("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,"
-                    "ecdsa-sha2-nistp521")
+            return s + (",ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,"
+                        "ecdsa-sha2-nistp521")
         return None
 
     def split_args(self, args):
