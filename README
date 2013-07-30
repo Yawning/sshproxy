@@ -52,8 +52,8 @@ Command Line Arguments:
   * Current bleeding edge Tor - SOCKSv4 length is too limited (#9163)
 
 Bridge Side Configuration:
- 1) Add a user (Eg: sshproxy).  The password SHOULD be disabled, and
-    /sbin/nologin or similar SHOULD be used as a shell.
+ 1) Add a user (Eg: sshproxy).  The password MUST be disabled, and
+    /sbin/nologin or similar MUST be used as a shell.
 
  2) Generate a RSA keypair for the user, add the public key to the
     authorized_keys file, and generate the privkey argument.
@@ -88,6 +88,15 @@ Bridge Side Configuration:
         PermitOpen 127.0.0.1:9001
         ForceCommand echo 'Shell access is not permited'
 
+    Note: PermitOpen allows both forward and reverse tunnels.  It is possible
+    for a malicious user to ssh -R 9001:127.0.0.1:9001 if tor is not running
+    and tie up the OR port.  This failure case is fairly obvious (tor doesn't
+    start up) and is easily solved by killing the offending sshd instance.
+
+    Once tor is running the ssh -R will fail, so the window in which this can
+    occur is rather limited.  To eliminate the issue entirely grsecurity or
+    SELinux are possible options.
+
  4) Obtain the information that is needed for a bridge line.
     * user -> The user account added in step 1
     * orport -> The OR port that your copy of tor is listening on
@@ -100,9 +109,9 @@ Bridge Side Configuration:
       Eg:
         $ ssh-keyscan localhost
 	# localhost SSH-2.0-OpenSSH_5.8p2_hpn13v11 FreeBSD-20110503
-	localhost ssh-rsa AAAAB3Nz.... (Long Base64 string snipped)
+	localhost ssh-rsa AAAAB3Nz....(Long Base64 string snipped)
 	# localhost SSH-2.0-OpenSSH_5.8p2_hpn13v11 FreeBSD-20110503
-	localhost ecdsa-sha2-nistp256 AAAAE2Vj (Long Base64 string snipped)
+	localhost ecdsa-sha2-nistp256 AAAAE2Vj....(Long Base64 string snipped)
 
 	Translates to:
 	  hostkey-rsa=AAAAB3Nz....
@@ -123,8 +132,8 @@ Bridge Side Configuration:
         http://www.rsyslog.com/doc/mmanon.html
     * Another option would be to run a separate instance of sshd just for the
       sshproxy user started up with the "-q" option which disables logging
-      entirely (AllowUsers can be used to limit which users can use the given
-      sshd instance).
+      entirely (AllowUsers/DenyUsers can be used to limit which users can use
+      the given sshd instance).
 
     Which strategy you chose is dependent on what you consider to be best for
     your system.  The author recommends sshd with -q, but as that requires
