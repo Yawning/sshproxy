@@ -27,11 +27,11 @@ PT Bridge Line Arguments:
  * "orport=<ORPORT>" - The OR port on the bridge's loopback interface
  * "privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
    code expects a PEM format RSA key, with the header/footer/newlines removed)
- * "ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
- * "ssh-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
- * "ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
- * "ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
- * "ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "hostkey-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
+ * "hostkey-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
+ * "hostkey-nisp256=<ECDSA KEY>" - (Optional) The ECDSA 256 bit host key
+ * "hostkey-nisp384=<ECDSA KEY>" - (Optional) The ECDSA 384 bit host key
+ * "hostkey-nisp521=<ECDSA KEY>" - (Optional) The ECDSA 521 bit host key
 
 Command Line Arguments:
  * "--no-ecdsa" - Force disable ECDSA support.
@@ -40,11 +40,11 @@ Command Line Arguments:
  * "--orport=<ORPORT>" - The OR port on the bridge's loopback interface
  * "--privkey=<PRIVKEY>" - The RSA private key to use when authenticating (The
    code expects a PEM format RSA key, with the header/footer/newlines removed)
- * "--ssh-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
- * "--ssh-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
- * "--ecdsa-sha2-nisp256=<ECDSA KEY>" - (Optional) The ECDSA host key
- * "--ecdsa-sha2-nisp384=<ECDSA KEY>" - (Optional) The ECDSA host key
- * "--ecdsa-sha2-nisp521=<ECDSA KEY>" - (Optional) The ECDSA host key
+ * "--hostkey-rsa=<RSA HOST KEY>" - The RSA host key (Base64 encoded)
+ * "--hostkey-dss=<DSA HOST KEY>" - (Optional) The DSA host key (Base64 encoded)
+ * "--hostkey-nisp256=<ECDSA KEY>" - (Optional) The ECDSA 256 bit host key
+ * "--hostkey-nisp384=<ECDSA KEY>" - (Optional) The ECDSA 384 bit host key
+ * "--hostkey-nisp521=<ECDSA KEY>" - (Optional) The ECDSA 521 bit host key
 
  Note: The command line arguments should only be used when Tor PT argument
  passing is broken in some way.
@@ -55,10 +55,20 @@ Bridge Side Configuration:
  1) Add a user (Eg: sshproxy).  The password SHOULD be disabled, and
     /sbin/nologin or similar SHOULD be used as a shell.
 
- 2) Generate a RSA keypair for the user and place the private key in the
-    appropriate location (ssh-keygen -t rsa, id_rsa and id_rsa.pub should be
-    in ~sshproxy/id_rsa).  For this release, no passphrase should be specified
-    for the private key.
+ 2) Generate a RSA keypair for the user, add the public key to the
+    authorized_keys file, and generate the privkey argument.
+
+    Eg:
+      # su sshproxy
+      $ ssh-keygen -t rsa
+      $ cat ~sshproxy/.ssh/id_rsa.pub > ~sshproxy/.ssh/authorized_keys
+      $ chmod 600 ~sshproxy/.ssh/authorized_keys
+      $ cat ~sshproxy/.ssh/id_rsa | sed '1d;$d' | tr -d '\n'
+        (The gigantic Base64 blob is what should be passed as the Bridge's
+	 privkey PT argument.)
+
+    Note: For this release, no passphrase should be specified for the private
+    key.
 
  3) Modify /etc/ssh/sshd_config to limit the user's capabilities.
     Eg:
@@ -84,19 +94,24 @@ Bridge Side Configuration:
                 (9001 by default)
     * privkey -> The RSA privage key generated in step 2, with the PEM
                  header/footer and newlines removed.
-    * ssh-rsa -> The Base64 encoded RSA host public key from
-                 /etc/ssh/ssh_host_rsa_key.pub
-    * ssh-dss -> (Optional) The Base64 encoded DSA host public key from
-                 /etc/ssh/ssh_host_dsa_key.pub
+    * hostkey-<type> -> The SSH public hostkeys for your host Base64 encoded.
+                        Either extract from /etc/ssh/ssh_host_*_key.pub or
+			use ssh-keyscan.
+      Eg:
+        $ ssh-keyscan localhost
+	# localhost SSH-2.0-OpenSSH_5.8p2_hpn13v11 FreeBSD-20110503
+	localhost ssh-rsa AAAAB3Nz.... (Long Base64 string snipped)
+	# localhost SSH-2.0-OpenSSH_5.8p2_hpn13v11 FreeBSD-20110503
+	localhost ecdsa-sha2-nistp256 AAAAE2Vj (Long Base64 string snipped)
 
-    If your sshd is ecdsa capable, you additionally need to supply the ECDSA
-    public key to your user.  Look at /etc/ssh/ssh_host_ecdsa_key.pub for the
-    key type/Base64 encoded key and supply the correct argument.
+	Translates to:
+	  hostkey-rsa=AAAAB3Nz....
+	  hostkey-nistp256=AAAAE2Vj....
 
     By default OpenSSH will use ECDSA->RSA->DSA as the hostkey algorithm, thus
-    the ssh-dss argument is not strictly required.  However if your sshd is
-    configured to use ECDSA, then providing a ECDSA hostkey as part of the
-    bridge line is required.
+    the hostkey-dss argument is not strictly required.  However if your sshd is
+    configured to use ECDSA, then you MUST provide a ECDSA hostkey as part of
+    the bridge line.
 
  5) Annoynymize ssh logs.
     * Systems using syslog-ng >= 3.0 can use Rewrite
@@ -135,6 +150,4 @@ Windows notes:
 
 TODO:
  * Improve documentation
- * Rename ssh-rsa, ssh-dss and ecdsa-* to clarity that they are hostkeys
- * Generating a bridge line is kind of annoying for administrators, it would be
-   nice to provide some automation aids.
+ * Fix the Windows issues somehow

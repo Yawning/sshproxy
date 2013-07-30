@@ -50,13 +50,13 @@ class state:
         init_ducttape(self)
 
     def get_args(self):
-        return "user,orport,privkey,ssh-rsa"
+        return "user,orport,privkey,hostkey-rsa"
 
     def get_optargs(self):
-        s = "ssh-dss"
+        s = "hostkey-dss"
         if self.use_ecdsa is True:
-            return s + (",ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,"
-                        "ecdsa-sha2-nistp521")
+            return s + (",hostkey-nistp256,hostkey-nistp384,"
+                        "hostkey-nistp521")
         return None
 
     def split_args(self, args):
@@ -92,34 +92,34 @@ class state:
             if arg.startswith("privkey="):
                 key_pem = arg[8:]
                 continue
-            if arg.startswith("ssh-rsa="):
+            if arg.startswith("hostkey-rsa="):
                 have_hostkey = True
-                self.add_known_host(server, "ssh-rsa", arg[8:])
+                self.add_known_host(server, "ssh-rsa", arg[12:])
                 continue
-            if arg.startswith("ssh-dss="):
+            if arg.startswith("hostkey-dss="):
                 have_hostkey = True
-                self.add_known_host(server, "ssh-dss", arg[8:])
+                self.add_known_host(server, "ssh-dss", arg[12:])
                 continue
             if self.use_ecdsa is True:
-                if arg.startswith("ecdsa-sha2-nistp256="):
+                if arg.startswith("hostkey-nistp256="):
                     have_hostkey = True
                     self.add_known_host(server, "ecdsa-sha2-nistp256",
-                                        arg[20:])
+                                        arg[17:])
                     continue
-                if arg.startswith("ecdsa-sha2-nistp384="):
+                if arg.startswith("hostkey-nistp384="):
                     have_hostkey = True
                     self.add_known_host(server, "ecdsa-sha2-nistp384",
-                                        arg[20:])
+                                        arg[17:])
                     continue
-                if arg.startswith("ecdsa-sha2-nistp521="):
+                if arg.startswith("hostkey-nistp521="):
                     have_hostkey = True
                     self.add_known_host(server, "ecdsa-sha2-nistp521",
-                                        arg[20:])
+                                        arg[17:])
                     continue
             else:
                 # ECDSA is disabled but the user may have provided hostkeys:
                 # just silently ignore such arguments.
-                if arg.startswith("ecdsa-sha2-nistp"):
+                if arg.startswith("hostkey-nistp"):
                     continue
             log.msg("SOCKS: Ignoring invalid argument: " + arg)
 

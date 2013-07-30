@@ -69,31 +69,31 @@ def build_default_args(args):
         return None
     s.append("privkey=" + args.privkey)
 
-    if (args.ssh_rsa is None and args.ssh_dsa is None and
-            args.ecdsa_sha2_nisp256 is None and
-            args.ecdsa_sha2_nisp384 is None and
-            args.ecdsa_sha2_nisp521 is None):
+    if (args.hostkey_rsa is None and args.hostkey_dsa is None and
+            args.hostkey_nisp256 is None and
+            args.hostkey_nisp384 is None and
+            args.hostkey_nisp521 is None):
         pyptlib.client.reportFailure("ssh", "ARGV: Missing Public Hostkey")
         return None
 
-    if args.ssh_rsa is not None:
-        s.append("ssh-rsa=" + args.ssh_rsa)
+    if args.hostkey_rsa is not None:
+        s.append("hostkey-rsa=" + args.hostkey_rsa)
 
-    if args.ssh_dss is not None:
-        s.append("ssh-dss=" + args.ssh_dss)
+    if args.hostkey_dss is not None:
+        s.append("hostkey-dss=" + args.hostkey_dss)
 
     if args.no_ecdsa is False:
         nr_ecdsa = 0
-        if args.ecdsa_sha2_nistp256 is not None:
-            s.append("ecdsa-sha2-nistp256=" + args.ecdsa_sha2_nistp256)
+        if args.hostkey_nistp256 is not None:
+            s.append("hostkey-nistp256=" + args.hostkey_nistp256)
             nr_ecdsa += 1
 
-        if args.ecdsa_sha2_nistp384 is not None:
-            s.append("ecdsa-sha2-nistp384=" + args.ecdsa_sha2_nistp384)
+        if args.hostkey_nistp384 is not None:
+            s.append("hostkey-nistp384=" + args.hostkey_nistp384)
             nr_ecdsa += 1
 
-        if args.ecdsa_sha2_nistp521 is not None:
-            s.append("ecdsa-sha2-nistp521=" + args.ecdsa_sha2_nistp521)
+        if args.hostkey_nistp521 is not None:
+            s.append("hostkey-nistp521=" + args.hostkey_nistp521)
             nr_ecdsa += 1
 
         if nr_ecdsa > 1:
@@ -122,15 +122,15 @@ def pysshproxy():
     parser.add_argument("--user", help="Remote user")
     parser.add_argument("--privkey", help="RSA Private Key")  # XXX: File?
     parser.add_argument("--orport", type=int, help="Remote ORPort")
-    parser.add_argument("--ssh-rsa", help="Remote RSA Public Hostkey")
-    parser.add_argument("--ssh-dss", help="Remote DSA Public Hostkey")
+    parser.add_argument("--hostkey-rsa", help="Remote RSA Public Hostkey")
+    parser.add_argument("--hostkey-dss", help="Remote DSA Public Hostkey")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--ecdsa-sha2-nistp256",
-                       help="Remote ECDSA NIST 256 Public Hostkey")
-    group.add_argument("--ecdsa-sha2-nistp384",
-                       help="Remote ECDSA NIST 384 Public Hostkey")
-    group.add_argument("--ecdsa-sha2-nistp521",
-                       help="Remote ECDSA NIST 521 Public Hostkey")
+    group.add_argument("--hostkey-nistp256",
+                       help="Remote ECDSA SHA2 NIST 256 Public Hostkey")
+    group.add_argument("--hostkey-nistp384",
+                       help="Remote ECDSA SHA2 NIST 384 Public Hostkey")
+    group.add_argument("--hostkey-nistp521",
+                       help="Remote ECDSA SHA2 NIST 521 Public Hostkey")
     args = parser.parse_args()
     optional_args = ["debug", "no_ecdsa"]
 
