@@ -16,7 +16,7 @@ Drawbacks to this approach:
  * This writes a bunch of data to disk (known_hosts and the id_rsa files) and
    there's no way to avoid writing a bunch of data to disk.
  * The author feels that forking OpenSSH and talking to the remote host over a
-   named pipe is really lame.
+   pipe is really lame.
  * OpenSSH by default does not support SOCKS which will make stacking this on
    other things harder.
  * It depends on the user's system ssh to be sane.
