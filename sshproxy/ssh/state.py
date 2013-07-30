@@ -15,7 +15,7 @@ from tempfile import mkstemp
 
 from twisted.python import log
 
-from sshproxy.ssh.ducttape import init_ducttape
+from sshproxy.ssh.ducttape import init_ducttape, term_ducttape
 
 
 class state:
@@ -24,13 +24,12 @@ class state:
     known_hosts = {}
     known_hosts_dirty = False
     cached_credentials = {}
-    use_ecdsa = True
-    ssh_works = False
-    l_clients = []
-
-    debug = False
     default_args = None
     cached_args = {}
+
+    use_ecdsa = True
+    ssh_works = False
+    debug = False
 
     key_types = [
         "ssh-rsa",
@@ -251,9 +250,8 @@ class state:
         return None
 
     def on_shutdown(self):
-        for client in self.l_clients:
-            client.transport.signalProcess("KILL")
-        self.l_clients = []
+        log.msg("State Mgr: Shutting down")
+        term_ducttape()
 
 
 def arg_to_pem(key):

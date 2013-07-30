@@ -33,7 +33,13 @@ _state = None
 
 
 def cleanup():
+    global _state
     global _tmpdir
+
+    if _state is not None:
+        _state.on_shutdown()
+        _state = None
+
     if _tmpdir is not None:
         # Blow away the _tmpdir
         rmtree(_tmpdir, True)
@@ -42,10 +48,6 @@ def cleanup():
 
 def ctrl_handler(sig):
     # Any console event is something evil happening that requires cleanup
-    global _state
-    if _state is not None:
-        _state.on_shutdown()
-        _state = None
     cleanup()
     return True
 

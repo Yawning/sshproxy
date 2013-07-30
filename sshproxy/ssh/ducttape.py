@@ -88,7 +88,6 @@ class ducttape(protocol.ProcessProtocol):
         self.port = port
 
     def connectionMade(self):
-        self.socks_obj.state_mgr.l_clients.append(self)
         if _SSH_W_IS_FUCKED is False:
             self.connectionReallyMade()
         else:
@@ -150,7 +149,6 @@ class ducttape(protocol.ProcessProtocol):
 
     def processEnded(self, reason):
         self.socks_obj.transport.loseConnection()
-        self.socks_obj.state_mgr.l_clients.remove(self)
 
     def socksClosed(self):
         try:
@@ -280,5 +278,10 @@ def init_ducttape(state):
         state.use_ecdsa = False
 
     state.ssh_works = True
+
+
+def term_ducttape():
+    # Do any nasty platform specific cleanup here.
+    pass
 
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
