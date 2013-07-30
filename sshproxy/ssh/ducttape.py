@@ -239,7 +239,10 @@ def init_ducttape(state):
     frozen = getattr(sys, "frozen", "")
 
     if frozen == "console_exe":
-        # We've been packaged with py2exe:
+        # We've been packaged with py2exe
+        #
+        # Note: If ssh.exe is cygwin's, then _NULL_FILE should be /dev/null, if
+        # it is linked against mingw, NUL should be used instead.
         _SSH_EXECUTABLE = os.path.abspath(os.path.join(os.path.dirname(
             sys.executable), "ssh.exe"))
         _NULL_FILE = "NUL"
