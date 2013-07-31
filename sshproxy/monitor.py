@@ -33,11 +33,13 @@ class monitor:
         if self.handle is None:
             return
         self.handle.stdin.write("WATCH " + str(pid) + "\n")
+        self.handle.stdin.flush()
 
     def unwatch_pid(self, pid):
         if self.handle is None:
             return
         self.handle.stdin.write("UNWATCH " + str(pid) + "\n")
+        self.handle.stdin.flush()
 
 
 def run_monitor(path):
@@ -45,17 +47,7 @@ def run_monitor(path):
     path = os.path.abspath(path)
     monitored_pids = []
 
-    while True:
-        line = None
-        try:
-            line = sys.stdin.readline()
-        except Exception:
-            break
-        except KeyboardInterrupt:
-            break
-        if line is None:
-            break
-
+    for line in sys.stdin:
         # Parse the simplistic monitor "protocol":
         #  * "WATCH pid"   -> Register a pid to kill on parent termination.
         #  * "UNWATCH pid" -> Deregister a pid from being killed on parent
