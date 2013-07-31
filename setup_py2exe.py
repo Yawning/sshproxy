@@ -16,6 +16,7 @@ setup(
         "py2exe": {
             "includes": ["twisted", "pyptlib"],
             "dist_dir": dist_path,
+            "unbuffered": True
         }
     }
 )
