@@ -77,6 +77,8 @@ class ducttape(protocol.ProcessProtocol):
     host = None
     port = None
 
+    pid = None
+
     l_client_creator = None
     l_client = None
     l_port = None
@@ -92,6 +94,8 @@ class ducttape(protocol.ProcessProtocol):
             self.connectionReallyMade()
         else:
             log.msg("SSH: Using -L, port:" + str(self.l_port))
+            self.pid = self.transport.pid
+            self.socks_obj.state_mgr.monitor.watch_pid(self.pid)
             self.l_client_creator = ClientCreator(reactor, ducttape_l_client,
                                                   self)
             self.l_attempts = 0
@@ -145,7 +149,8 @@ class ducttape(protocol.ProcessProtocol):
         pass
 
     def processExited(self, reason):
-        pass
+        if _SSH_W_IS_FUCKED is True:
+            self.socks_obj.state_mgr.monitor.unwatch_pid(self.pid)
 
     def processEnded(self, reason):
         self.socks_obj.transport.loseConnection()

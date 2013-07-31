@@ -25,6 +25,7 @@ import pyptlib.client
 import sshproxy.ssh.state as ssh_state
 import sshproxy.socks as socks
 
+from sshproxy.monitor import run_monitor
 from sshproxy.ssh.state import arg_to_pem
 
 _LOG_FILE_NAME = "sshproxy.log"
@@ -133,8 +134,15 @@ def pysshproxy():
                        help="Remote ECDSA SHA2 NIST 384 Public Hostkey")
     group.add_argument("--hostkey-nistp521",
                        help="Remote ECDSA SHA2 NIST 521 Public Hostkey")
+    group.add_argument("--monitor", help=argparse.SUPPRESS)
     args = parser.parse_args()
     optional_args = ["debug", "no_ecdsa"]
+
+    # Cleanup on Windows is stupid, so sshproxy.exe also needs to double
+    # as a monitor.
+    if args.monitor is not None:
+        run_monitor(args.monitor)
+        sys.exit(0)
 
     # Bootstrap the pluggable transport protocol
     try:

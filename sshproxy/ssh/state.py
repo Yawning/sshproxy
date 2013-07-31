@@ -15,6 +15,7 @@ from tempfile import mkstemp
 
 from twisted.python import log
 
+from sshproxy.monitor import monitor
 from sshproxy.ssh.ducttape import init_ducttape, term_ducttape
 
 
@@ -30,6 +31,7 @@ class state:
     use_ecdsa = True
     ssh_works = False
     debug = False
+    monitor = None
 
     key_types = [
         "ssh-rsa",
@@ -46,6 +48,7 @@ class state:
         self.temp_path = path
         self.known_hosts_path = os.path.abspath(os.path.join(self.temp_path,
                                                 "known_hosts"))
+        self.monitor = monitor(path)
         init_ducttape(self)
 
     def get_args(self):
