@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 from shutil import rmtree
-from signal import SIGKILL
+from signal import SIGTERM
 
 
 class monitor:
@@ -26,18 +26,18 @@ class monitor:
         frozen = getattr(sys, "frozen", "")
         if frozen != "console_exe":
             return
-        self.handle = subprocess.Popen([sys.executable, "--managed=" + path],
+        self.handle = subprocess.Popen([sys.executable, "--monitor=" + path],
                                        stdin=subprocess.PIPE)
 
-    def watch_pid(pid):
+    def watch_pid(self, pid):
         if self.handle is None:
             return
-        self.handle.write("WATCH " + str(pid) + "\n")
+        self.handle.stdin.write("WATCH " + str(pid) + "\n")
 
-    def unwatch_pid(pid):
+    def unwatch_pid(self, pid):
         if self.handle is None:
             return
-        self.handle.write("UNWATCH " + str(pid) + "\n")
+        self.handle.stdin.write("UNWATCH " + str(pid) + "\n")
 
 
 def run_monitor(path):
@@ -76,11 +76,9 @@ def run_monitor(path):
             except ValueError:
                 continue
 
-    # Blow away the monitored children.  Note the use of SIGKILL because if
-    # the monitor is forced to do cleanup, it means that the real sshproxy
-    # wasn't able to do it.
+    # Blow away the monitored children.
     for pid in monitored_pids:
-        os.kill(pid, SIGKILL)
+        os.kill(pid, SIGTERM)
 
     # If the directory passed in by path still exists, blow it away.
     if os.path.exists(path):
