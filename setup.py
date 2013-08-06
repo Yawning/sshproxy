@@ -8,7 +8,7 @@ setup(
     version = "0.0.1",
     description = ("A SSH pluggable transport proxy written in Python"),
     license = "BSD",
-    keywords = ['tor', 'obfusication', 'twisted', 'ssh'],
+    keywords = ['tor', 'obfuscation', 'twisted', 'ssh'],
 
     packages = find_packages(),
     entry_points = {
