@@ -257,6 +257,12 @@ def init_ducttape(state):
         _SSH_EXECUTABLE = "/usr/bin/ssh"
         _NULL_FILE = "/dev/null"
 
+        # The tor browser bundle sets LD_LIBRARY_PATH, and ships with their own
+        # version of OpenSSL.  Unset the enviornment variable so our children
+        # pick up the OpenSSL they were linked against.
+        if os.getenv("LD_LIBRARY_PATH") is not None:
+            os.unsetenv("LD_LIBRARY_PATH")
+
     # Run ssh - V to ensure that the SSH excutable works, that it is OpenSSH,
     # and so that we can determine if it supports ECDSA or not.
     #
