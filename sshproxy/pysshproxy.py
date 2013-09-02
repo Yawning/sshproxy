@@ -19,8 +19,8 @@ from shutil import rmtree
 from twisted.python import log
 from twisted.internet import reactor
 
-import pyptlib
-import pyptlib.client
+from pyptlib.config import EnvError
+from pyptlib.client import ClientTransportPlugin
 
 import sshproxy.ssh.state as ssh_state
 import sshproxy.socks as socks
@@ -53,21 +53,21 @@ def ctrl_handler(sig):
     return True
 
 
-def build_default_args(args):
+def build_default_args(ptclient, args):
     s = []
 
     if args.user is None:
-        pyptlib.client.reportFailure("ssh", "ARGV: Missing user (--user)")
+        ptclient.reportMethodFailure("ssh", "ARGV: Missing user (--user)")
         return None
     s.append("user=" + args.user)
 
     if args.orport is None:
-        pyptlib.client.reportFailure("ssh", "ARGV: Missing ORPort (--orport)")
+        ptclient.reportMethodFailure("ssh", "ARGV: Missing ORPort (--orport)")
         return None
     s.append("orport=" + str(args.orport))
 
     if args.privkey is None:
-        pyptlib.client.reportFailure("ssh", "ARGV: Missing Private Key "
+        ptclient.reportMethodFailure("ssh", "ARGV: Missing Private Key "
                                      "(--privkey)")
         return None
     s.append("privkey=" + args.privkey)
@@ -76,7 +76,7 @@ def build_default_args(args):
             args.hostkey_nisp256 is None and
             args.hostkey_nisp384 is None and
             args.hostkey_nisp521 is None):
-        pyptlib.client.reportFailure("ssh", "ARGV: Missing Public Hostkey")
+        ptclient.reportMethodFailure("ssh", "ARGV: Missing Public Hostkey")
         return None
 
     if args.hostkey_rsa is not None:
@@ -100,7 +100,7 @@ def build_default_args(args):
             nr_ecdsa += 1
 
         if nr_ecdsa > 1:
-            pyptlib.client.reportFailure("ssh", "ARGV: Expected one ECDSA"
+            ptclient.reportMethodFailure("ssh", "ARGV: Expected one ECDSA"
                                          "Public Hostkey, got " +
                                          str(nr_ecdsa))
             return None
@@ -145,11 +145,12 @@ def pysshproxy():
         sys.exit(0)
 
     # Bootstrap the pluggable transport protocol
+    ptclient = ClientTransportPlugin()
     try:
-        info = pyptlib.client.init(["ssh"])
-    except pyptlib.config.EnvError:
+        ptclient.init(["ssh"])
+    except EnvError:
         sys.exit(1)
-    state_location = info["state_loc"]
+    state_location = ptclient.config.getStateLocation()
 
     # Create the state directory if required
     if not os.path.isdir(state_location):
@@ -157,8 +158,8 @@ def pysshproxy():
             os.makedirs(state_location)
         except OSError as exception:
             if exception.errno != errno.EEXIST:
-                pyptlib.client.reportFailure("ssh", "Failed to create dir " +
-                                             str(exception))
+                ptclient.reportMethodError("ssh", "Failed to create dir " +
+                                           str(exception))
                 sys.exit(1)
 
     log.startLogging(open(os.path.join(state_location, _LOG_FILE_NAME),
@@ -184,7 +185,7 @@ def pysshproxy():
             win32api.SetConsoleCtrlHandler(ctrl_handler, True)
         except:
             log.msg("Failed to install ConsoleCtrlHandler")
-            pyptlib.client.reportFailure("ssh", "Failed to install CtrlHandler")
+            ptclient.reportMethodError("ssh", "Failed to install CtrlHandler")
             sys.exit(1)
 
     # Initialize the ssh state manager, and handle command line arguments
@@ -206,12 +207,12 @@ def pysshproxy():
             break
 
     if have_args is True:
-        _state.default_args = build_default_args(args)
+        _state.default_args = build_default_args(ptclient, args)
         if _state.default_args is None:
             sys.exit(1)
 
     if _state.ssh_works is False:
-        pyptlib.client.reportFailure("ssh", "SSH client appears non-functional")
+        ptclient.reportMethodError("ssh", "SSH client appears non-functional")
         sys.exit(1)
 
     # Setup the SOCKSv4 proxy
@@ -222,15 +223,15 @@ def pysshproxy():
 
     # Report back to Tor
     start_twisted = False
-    for transport in info["transports"]:
+    for transport in ptclient.getTransports():
         if transport == "ssh":
             # pyptlib is bugged(?) and doesn't handle ARGS/OPT-ARGS correctly
             # when it does, _state.get_args()/_state.get_optargs() will give
             # what is expected.
-            pyptlib.client.reportSuccess("ssh", 4, (addrport.getHost().host,
-                                                    addrport.getHost().port))
+            ptclient.reportMethodSuccess("ssh", "socks4",
+                (addrport.getHost().host, addrport.getHost().port))
             start_twisted = True
-    pyptlib.client.reportEnd()
+    ptclient.reportMethodsEnd()
 
     if start_twisted is True:
         reactor.run()
